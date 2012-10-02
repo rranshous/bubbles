@@ -17,8 +17,10 @@ DA = DirectAccessor
 class Context(object):
 
     def __init__(self, mapping={}):
-        self.mapping = mapping
+        self.mapping = {}
         self.accessor_map = {}
+        self.update(**mapping)
+
         # update our mapping to include this context
         # will also set resulting access map against self
         self.update(context=self)
