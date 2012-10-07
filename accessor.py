@@ -13,9 +13,17 @@ def get_function_args(func):
     returns list of functions args + list of named args
     """
     arg_spec = getargspec(func)
+
+    # figure out what the defaults are
+    defaults = arg_spec.defaults or []
+    dl = len(defaults)
+    args = arg_spec.args or []
+    dlo = len(args) - dl
+    args, k_args = args[:dlo], args[dlo:]
     return (
-        filter(lambda v: v!='self', arg_spec.args or []),
-        filter(lambda v: v!='self', arg_spec.keywords or [])
+        filter(lambda v: v!='self', args),
+        k_args,
+        defaults
     )
 
 
@@ -53,7 +61,13 @@ def fill_deps(accessor_map, func, *given_args, **given_kwargs):
     """
 
     # get from the function what args it expects
-    f_args, f_named_args = get_function_args(func)
+    f_args, f_named_args, defaults = get_function_args(func)
+
+    # update our given kwargs to include the defaults
+    # (if it's not given)
+    f_named_defaults = dict(zip(f_named_args,defaults))
+    f_named_defaults.update(given_kwargs)
+    given_kwargs = f_named_defaults
 
     # our lookup for derived args
     # we know the given args are correct, so just set those
@@ -82,7 +96,8 @@ def fill_deps(accessor_map, func, *given_args, **given_kwargs):
     # now check and make sure all the required deps have been filled
     for f_arg in f_args:
         if not f_arg in given_kwargs:
-            ex = Exception("Missing Dep: %s" % f_arg)
+            ex = Exception("Missing Dep: %s\n%s" % (f_arg,
+                                                  accessor_map))
             ex.dep = f_arg
             raise ex
 

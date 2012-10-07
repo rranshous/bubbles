@@ -1,4 +1,5 @@
 from accessor import fill_deps
+from inspect import isfunction, ismethod
 
 class DirectAccessor(object):
     """ accessor which simply will return you the value
@@ -16,9 +17,10 @@ DA = DirectAccessor
 
 class Context(object):
 
-    def __init__(self, mapping={}):
+    def __init__(self, mapping={}, wrap_functions=True):
         self.mapping = {}
         self.accessor_map = {}
+        self.wrap_functions = wrap_functions
         self.update(**mapping)
 
         # update our mapping to include this context
@@ -35,6 +37,7 @@ class Context(object):
         """
         add to our mapping / update our accessor map
         """
+
         self.mapping.update(kwargs)
         self.accessor_map = self.build_accessor_map(self.mapping)
 
@@ -45,7 +48,7 @@ class Context(object):
         self.mapping.update({k:v})
 
     def copy(self):
-        return Context(self.mapping)
+        return build_context(self.mapping)
 
     @staticmethod
     def build_accessor_map(mapping):
@@ -63,6 +66,7 @@ class Context(object):
         passed arguments are added to end of resulting
         callables args
         """
+
         def resulting_callable(*c_args, **c_kwargs):
             # create a set of argsuments which are
             # the args passed to the this callable concat'd
@@ -79,8 +83,34 @@ class Context(object):
             f_args, f_kwargs = fill_deps(self.accessor_map, fn,
                                          *cp_args, **cp_kwargs)
 
+            # if flag is set, wrap the callables being passed in
+            if self.wrap_functions:
+
+                # wrap the normal args
+                for i, arg in enumerate(f_args):
+                    if isfunction(arg) or ismethod(arg):
+                        # make sure it's not already wrapped
+                        if not getattr(arg, 'is_wrapped', False):
+                            v = self.create_partial(arg)
+                            f_args[i] = v
+                    else:
+                        f_args[i] = arg
+
+                # wrap the kwargs
+                for k, v in f_kwargs.items():
+                    if isfunction(v) or ismethod(v):
+                        # make sure it's not already wrapped
+                        if not getattr(v, 'is_wrapped', False):
+                            v = self.create_partial(v)
+                            f_kwargs[k] = v
+                    else:
+                        f_kwargs[k] = v
+
             # call the function we're wrapping with the derived args
             return fn( *f_args, **f_kwargs )
+
+        resulting_callable.is_wrapped = True
+        resulting_callable.context = self
 
         # return our wrapper
         return resulting_callable
