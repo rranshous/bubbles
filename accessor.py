@@ -80,15 +80,20 @@ def fill_deps(accessor_map, func, *given_args, **given_kwargs):
     all_args = iterskip(len(given_args), all_args)
 
     for f_arg in all_args:
-        if not f_arg in given_kwargs:
-            # an arg the funcion expects isn't given, see if we can
-            # get it from an accessor
-            accessor = accessor_map.get(f_arg)
-            try:
-                derived_arg = accessor.derive(f_arg, **given_kwargs)
-            except Exception, ex:
-                continue # could not derive
-            derived_args[f_arg] = derived_arg
+
+        # if they passed us the kwarg, than skip
+        if f_arg in given_kwargs and f_arg not in f_named_args:
+            continue
+
+        # an arg the funcion expects isn't given, see if we can
+        # get it from an accessor
+        accessor = accessor_map.get(f_arg)
+        try:
+            derived_arg = accessor.derive(f_arg, **given_kwargs)
+        except Exception, ex:
+            continue # could not derive
+
+        derived_args[f_arg] = derived_arg
 
     # combine our new args and our given ones
     given_kwargs.update(derived_args)
