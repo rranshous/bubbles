@@ -1,5 +1,6 @@
 from accessor import fill_deps
 from inspect import isfunction, ismethod
+from functools import wraps
 
 class DirectAccessor(object):
     """ accessor which simply will return you the value
@@ -58,6 +59,17 @@ class Context(object):
         """
         return dict( ( k, DA(k, mapping[k]) ) for k in mapping )
 
+    def decorate(self, fn):
+        """
+        creates a decorator wrapping a function in this context
+        """
+
+        @wraps(fn)
+        def _fn(*args, **kwargs):
+            return self.create_partial(fn)(*args, **kwargs)
+
+        return _fn
+
     def create_partial(self, fn, *p_args, **p_kwargs):
         """
         returns a callable which has been wrapped
@@ -67,6 +79,7 @@ class Context(object):
         callables args
         """
 
+        @wraps(fn)
         def resulting_callable(*c_args, **c_kwargs):
             # create a set of argsuments which are
             # the args passed to the this callable concat'd
