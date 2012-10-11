@@ -120,6 +120,7 @@ class Context(object):
                         f_kwargs[k] = v
 
             # call the function we're wrapping with the derived args
+            print 'FUNCTION ARGS: %s :: %s' % (f_args, f_kwargs)
             return fn( *f_args, **f_kwargs )
 
         resulting_callable.is_wrapped = True
