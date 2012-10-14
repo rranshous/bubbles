@@ -108,8 +108,16 @@ def fill_deps(accessor_map, func, *given_args, **given_kwargs):
 
     # if they've been filled now we want to return back what we've found
     # broken down into un-named and named
+
+    # in some cases the function calls for *args, in that case we'll have
+    # no f_args but have been given args, just pass on the given args
+    if given_args and len(f_args) == 0:
+        to_return_args = list(given_args)
+    else:
+        to_return_args = [given_kwargs[a] for a in f_args]
+
     return (
-        [given_kwargs[a] for a in f_args],
+        to_return_args,
         dict((a,given_kwargs[a]) for a in f_named_args)
     )
 
