@@ -28,6 +28,17 @@ class Context(object):
         # will also set resulting access map against self
         self.update(context=self)
 
+    def get(self, item):
+        """
+        return the context obj for the given item name
+        """
+
+        accessor = self.accessor_map.get('item')
+        if not accessor:
+            return None
+
+        return accessor.derive(**self.mapping)
+
     def extend(self, context):
         """
         extend this context to include the values of another
