@@ -33,7 +33,7 @@ class Context(object):
         return the context obj for the given item name
         """
 
-        accessor = self.accessor_map.get('item')
+        accessor = self.accessor_map.get(item)
         if not accessor:
             return None
 
@@ -145,8 +145,13 @@ class Context(object):
         """
         return self.create_partial(fn)(*args, **kwargs)
 
-def build_context(*context_pieces):
+def build_context(*context_pieces, **kwargs):
     context = {}
+
+    # update the context from the kwargs
+    if kwargs:
+        context.update(kwargs)
+
     for context_piece in context_pieces:
         # check if dict, update context w/ k/v pairs
         # todo: check if Mapping instead ?
