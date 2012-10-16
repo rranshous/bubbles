@@ -57,7 +57,7 @@ class Context(object):
         """
         add a new k / v to our mapping
         """
-        self.mapping.update({k:v})
+        self.update(**{k:v})
 
     def copy(self):
         return build_context(self.mapping)
