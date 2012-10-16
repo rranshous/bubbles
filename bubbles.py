@@ -37,7 +37,7 @@ class Context(object):
         if not accessor:
             return None
 
-        return accessor.derive(**self.mapping)
+        return accessor.derive(item, **self.mapping)
 
     def extend(self, context):
         """
