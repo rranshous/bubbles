@@ -111,6 +111,41 @@ class Context(object):
 
         return _fn
 
+    def decorate_class(self, cls):
+        """
+        injects a context as a base class to the passed
+        class. injected context is backed by this context
+        """
+
+        # wrap the new classes init so that after it does it's thing
+        # it updates the mapping, to share ours
+        _self = self
+        def __wrapped_init__(self, *args, **kwargs):
+            print 'wrapped init: %s' % (self)
+            # call the parent init first
+            cls.__init__(self, *args, **kwargs)
+
+            # now init the context
+            _self.__class__.__init__(self, _self.mapping)
+
+        # wrap the new init in the old if there is one
+        if cls.__dict__.get('__init__'):
+            __wrapped_init__ = update_wrapper(__wrapped_init__,
+                                              cls.__dict__.get('__init__'))
+
+        # create a new class attribute dict from passed class'
+        cls_dict = dict(cls.__dict__)
+        cls_dict['__init__'] = __wrapped_init__
+
+        # check for object in the cls' base classes, since we're
+        # an object we want to remove it
+        new_class = type(cls.__name__,
+                         tuple( c for c in cls.__bases__ if not c is object ) + \
+                          (self.__class__,),
+                         cls_dict)
+        return new_class
+
+
     def create_partial(self, fn, *p_args, **p_kwargs):
         """
         returns a callable which has been wrapped
