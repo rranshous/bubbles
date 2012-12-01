@@ -20,6 +20,11 @@ class Context(object):
 
     def __init__(self, mapping=None, wrap_functions=True):
         self.mapping = mapping or {}
+        # if they passed us another context as the map
+        # than we'll just share our mapping dict w/ its
+        # that way changes to either of us will be shared
+        if isinstance(self.mapping, Context):
+            self.mapping = self.mapping.mapping
         self.accessor_map = {}
         self.wrap_functions = wrap_functions
         self.update(**self.mapping)
@@ -174,6 +179,11 @@ class Context(object):
 
 def build_context(*context_pieces, **kwargs):
     context = {}
+
+    # if all we are passed is another context, than return
+    # a new instance based on the passed one
+    if len(context_pieces) == 1 and isinstance(context_pieces[0], Context):
+        return Context(context_pieces[0])
 
     # update the context from the kwargs
     if kwargs:
