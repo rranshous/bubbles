@@ -44,9 +44,10 @@ class Context(object):
         access context objects via attribute lookup
         """
 
+
         # check the parent first
         try:
-            object.__getattr__(self, attr)
+            return object.__getattr__(self, attr)
         except AttributeError:
             pass
 
