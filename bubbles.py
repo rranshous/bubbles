@@ -18,11 +18,11 @@ DA = DirectAccessor
 
 class Context(object):
 
-    def __init__(self, mapping={}, wrap_functions=True):
-        self.mapping = {}
+    def __init__(self, mapping=None, wrap_functions=True):
+        self.mapping = mapping or {}
         self.accessor_map = {}
         self.wrap_functions = wrap_functions
-        self.update(**mapping)
+        self.update(**self.mapping)
 
         # update our mapping to include this context
         # will also set resulting access map against self
@@ -38,6 +38,23 @@ class Context(object):
             return None
 
         return accessor.derive(item, **self.mapping)
+
+    def __getattr__(self, attr):
+        """
+        access context objects via attribute lookup
+        """
+
+        # check the parent first
+        try:
+            object.__getattr__(self, attr)
+        except AttributeError:
+            pass
+
+        # we are overriding getattr as opposed to getattribute
+        # so that normal class attributes take precidence
+        # over context attributes
+        if attr in self.accessor_map:
+            return self.get(attr)
 
     def extend(self, context):
         """
