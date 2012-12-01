@@ -37,7 +37,14 @@ class Context(object):
         if not accessor:
             return None
 
-        return accessor.derive(item, **self.mapping)
+        v = accessor.derive(item, **self.mapping)
+
+        # if we got a callable, and the wrappable
+        # flag is set, wrap in our context
+        if self.wrap_functions and callable(v):
+            return self.create_partial(v)
+
+        return v
 
     def __getattr__(self, attr):
         """
@@ -75,7 +82,7 @@ class Context(object):
         """
         add a new k / v to our mapping
         """
-        self.mapping.update({k:v})
+        self.update(**{k:v})
 
     def copy(self):
         return build_context(self.mapping)
@@ -125,6 +132,7 @@ class Context(object):
             f_args, f_kwargs = fill_deps(self.accessor_map, fn,
                                          *cp_args, **cp_kwargs)
 
+            """
             # if flag is set, wrap the callables being passed in
             if self.wrap_functions:
 
@@ -147,6 +155,7 @@ class Context(object):
                             f_kwargs[k] = v
                     else:
                         f_kwargs[k] = v
+            """
 
             # call the function we're wrapping with the derived args
             return fn( *f_args, **f_kwargs )
