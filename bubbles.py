@@ -16,6 +16,7 @@ class DirectAccessor(object):
         return '<DirectAccessor "%s">' % self.key
 DA = DirectAccessor
 
+
 class Context(object):
 
     def __init__(self, mapping=None, wrap_functions=True):
@@ -211,6 +212,39 @@ class Context(object):
         call the function within the context
         """
         return self.create_partial(fn)(*args, **kwargs)
+
+
+class MiddlewareContext(Context):
+    """
+    Adds middleware abstraction to the context
+    all values which are retrieved from the context are
+    run through each middleware.
+
+    middleware are callables which take: key, value
+    as args and are wrapped in the context
+    """
+
+    def __init__(self, mapping=None, wrap_functions=True, middleware=None):
+        self.middleware = middleware or []
+        super(MiddlewareContext, self).__init__(mapping, wrap_functions)
+
+    def get(self, item):
+        """
+        returns the given item, after running it through
+        the middleware
+        """
+
+        # get our object from our 'rent
+        o = super(MiddlewareContext, self).get(item)
+
+        # run it through the middleware
+        for middleware in self.middleware:
+            # wrap the middleware callable in this context
+            o = self.create_partial(middleware)(item, o)
+
+        # return what we were left w/
+        return o
+
 
 def build_context(*context_pieces, **kwargs):
     context = {}
