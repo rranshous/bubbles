@@ -16,13 +16,19 @@ class DirectAccessor(object):
         return '<DirectAccessor "%s">' % self.key
 DA = DirectAccessor
 
+
 class Context(object):
 
-    def __init__(self, mapping={}, wrap_functions=True):
-        self.mapping = {}
+    def __init__(self, mapping=None, wrap_functions=True):
+        self.mapping = mapping or {}
+        # if they passed us another context as the map
+        # than we'll just share our mapping dict w/ its
+        # that way changes to either of us will be shared
+        if isinstance(self.mapping, Context):
+            self.mapping = self.mapping.mapping
         self.accessor_map = {}
         self.wrap_functions = wrap_functions
-        self.update(**mapping)
+        self.update(**self.mapping)
 
         # update our mapping to include this context
         # will also set resulting access map against self
@@ -37,7 +43,32 @@ class Context(object):
         if not accessor:
             return None
 
-        return accessor.derive(item, **self.mapping)
+        v = accessor.derive(item, **self.mapping)
+
+        # if we got a callable, and the wrappable
+        # flag is set, wrap in our context
+        if self.wrap_functions and callable(v):
+            return self.create_partial(v)
+
+        return v
+
+    def __getattr__(self, attr):
+        """
+        access context objects via attribute lookup
+        """
+
+
+        # check the parent first
+        try:
+            return object.__getattr__(self, attr)
+        except AttributeError:
+            pass
+
+        # we are overriding getattr as opposed to getattribute
+        # so that normal class attributes take precidence
+        # over context attributes
+        if attr in self.accessor_map:
+            return self.get(attr)
 
     def extend(self, context):
         """
@@ -81,6 +112,41 @@ class Context(object):
 
         return _fn
 
+    def decorate_class(self, cls):
+        """
+        injects a context as a base class to the passed
+        class. injected context is backed by this context
+        """
+
+        # wrap the new classes init so that after it does it's thing
+        # it updates the mapping, to share ours
+        _self = self
+        def __wrapped_init__(self, *args, **kwargs):
+            print 'wrapped init: %s' % (self)
+            # call the parent init first
+            cls.__init__(self, *args, **kwargs)
+
+            # now init the context
+            _self.__class__.__init__(self, _self.mapping)
+
+        # wrap the new init in the old if there is one
+        if cls.__dict__.get('__init__'):
+            __wrapped_init__ = update_wrapper(__wrapped_init__,
+                                              cls.__dict__.get('__init__'))
+
+        # create a new class attribute dict from passed class'
+        cls_dict = dict(cls.__dict__)
+        cls_dict['__init__'] = __wrapped_init__
+
+        # check for object in the cls' base classes, since we're
+        # an object we want to remove it
+        new_class = type(cls.__name__,
+                         tuple( c for c in cls.__bases__ if not c is object ) + \
+                          (self.__class__,),
+                         cls_dict)
+        return new_class
+
+
     def create_partial(self, fn, *p_args, **p_kwargs):
         """
         returns a callable which has been wrapped
@@ -107,6 +173,7 @@ class Context(object):
             f_args, f_kwargs = fill_deps(self.accessor_map, fn,
                                          *cp_args, **cp_kwargs)
 
+            """
             # if flag is set, wrap the callables being passed in
             if self.wrap_functions:
 
@@ -129,6 +196,7 @@ class Context(object):
                             f_kwargs[k] = v
                     else:
                         f_kwargs[k] = v
+            """
 
             # call the function we're wrapping with the derived args
             return fn( *f_args, **f_kwargs )
@@ -145,8 +213,46 @@ class Context(object):
         """
         return self.create_partial(fn)(*args, **kwargs)
 
+
+class MiddlewareContext(Context):
+    """
+    Adds middleware abstraction to the context
+    all values which are retrieved from the context are
+    run through each middleware.
+
+    middleware are callables which take: key, value
+    as args and are wrapped in the context
+    """
+
+    def __init__(self, mapping=None, wrap_functions=True, middleware=None):
+        self.middleware = middleware or []
+        super(MiddlewareContext, self).__init__(mapping, wrap_functions)
+
+    def get(self, item):
+        """
+        returns the given item, after running it through
+        the middleware
+        """
+
+        # get our object from our 'rent
+        o = super(MiddlewareContext, self).get(item)
+
+        # run it through the middleware
+        for middleware in self.middleware:
+            # wrap the middleware callable in this context
+            o = self.create_partial(middleware)(item, o)
+
+        # return what we were left w/
+        return o
+
+
 def build_context(*context_pieces, **kwargs):
     context = {}
+
+    # if all we are passed is another context, than return
+    # a new instance based on the passed one
+    if len(context_pieces) == 1 and isinstance(context_pieces[0], Context):
+        return Context(context_pieces[0])
 
     # update the context from the kwargs
     if kwargs:
