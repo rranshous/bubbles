@@ -1,4 +1,4 @@
-from accessor import fill_deps
+from accessor import context_fill_deps
 from inspect import isfunction, ismethod
 from functools import wraps
 
@@ -170,33 +170,10 @@ class Context(object):
 
             # get the args and kwargs we are going to pass
             # to our resulting
-            f_args, f_kwargs = fill_deps(self.accessor_map, fn,
-                                         *cp_args, **cp_kwargs)
+            f_args, f_kwargs = context_fill_deps(
+                                self, fn,
+                                *cp_args, **cp_kwargs)
 
-            """
-            # if flag is set, wrap the callables being passed in
-            if self.wrap_functions:
-
-                # wrap the normal args
-                for i, arg in enumerate(f_args):
-                    if isfunction(arg) or ismethod(arg):
-                        # make sure it's not already wrapped
-                        if not getattr(arg, 'is_wrapped', False):
-                            v = self.create_partial(arg)
-                            f_args[i] = v
-                    else:
-                        f_args[i] = arg
-
-                # wrap the kwargs
-                for k, v in f_kwargs.items():
-                    if isfunction(v) or ismethod(v):
-                        # make sure it's not already wrapped
-                        if not getattr(v, 'is_wrapped', False):
-                            v = self.create_partial(v)
-                            f_kwargs[k] = v
-                    else:
-                        f_kwargs[k] = v
-            """
 
             # call the function we're wrapping with the derived args
             return fn( *f_args, **f_kwargs )
