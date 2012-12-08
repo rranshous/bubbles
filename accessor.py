@@ -82,7 +82,7 @@ def fill_deps(accessor_map, func, *given_args, **given_kwargs):
     for f_arg in all_args:
 
         # if they passed us the kwarg, than skip
-        if f_arg in given_kwargs and f_arg not in f_named_args:
+        if f_arg in given_kwargs: #and f_arg not in f_named_args: # not sure why this is here
             continue
 
         # an arg the funcion expects isn't given, see if we can

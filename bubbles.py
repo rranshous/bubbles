@@ -122,7 +122,6 @@ class Context(object):
         # it updates the mapping, to share ours
         _self = self
         def __wrapped_init__(self, *args, **kwargs):
-            print 'wrapped init: %s' % (self)
             # call the parent init first
             cls.__init__(self, *args, **kwargs)
 
@@ -158,6 +157,7 @@ class Context(object):
 
         @wraps(fn)
         def resulting_callable(*c_args, **c_kwargs):
+
             # create a set of argsuments which are
             # the args passed to the this callable concat'd
             # with the one's passed to the create_partial call
