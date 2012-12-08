@@ -181,7 +181,10 @@ def context_fill_deps(context, func, *given_args, **given_kwargs):
         # if we got a callable, and the wrappable
         # flag is set, wrap in our context
         if context.wrap_functions and callable(derived_arg):
-            derived_arg = context.create_partial(derived_arg)
+            try:
+                derived_arg = context.create_partial(derived_arg)
+            except Exception:
+                pass # shrug
 
         derived_args[f_arg] = derived_arg
 
