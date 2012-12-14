@@ -170,10 +170,14 @@ class Context(object):
 
             # get the args and kwargs we are going to pass
             # to our resulting
-            f_args, f_kwargs = context_fill_deps(
-                                self, fn,
-                                *cp_args, **cp_kwargs)
-
+            try:
+                f_args, f_kwargs = context_fill_deps(
+                                    self, fn,
+                                    *cp_args, **cp_kwargs)
+            except Exception, ex:
+                print 'Wrapping exception: %s' % ex
+                # couldn't wrap! use original args
+                f_args, f_kwargs = c_args, c_kwargs
 
             # call the function we're wrapping with the derived args
             return fn( *f_args, **f_kwargs )
